@@ -1,0 +1,74 @@
+name: Docs production
+on:
+  push:
+    branches: [main]
+permissions: {}
+concurrency:
+  group: docs-production
+  cancel-in-progress: false
+jobs:
+  build:
+    if: vars.DOCS_DEPLOY_ENABLED == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions: { contents: read }
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with: { persist-credentials: false }
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with: { node-version-file: .node-version }
+      - run: npm install --global --ignore-scripts pnpm@11.19.0
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - run: pnpm check && pnpm test && pnpm build
+      - run: python3 -m unittest discover -s tests -p '*_test.py' -v
+      - name: Bind static artifact
+        run: |
+          tar -czf site.tar.gz -C dist .
+          sha256sum site.tar.gz > site.tar.gz.sha256
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: production-${{ github.sha }}
+          path: |
+            site.tar.gz
+            site.tar.gz.sha256
+          retention-days: 30
+          if-no-files-found: error
+  deploy:
+    needs: build
+    if: github.ref == 'refs/heads/main' && vars.DOCS_DEPLOY_ENABLED == 'true'
+    environment: docs-production
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions: { contents: read }
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with: { persist-credentials: false }
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with: { node-version-file: .node-version }
+      - run: npm install --global --ignore-scripts pnpm@11.19.0
+      - name: Install deploy tooling without build dependencies
+        run: pnpm --dir deploy install --frozen-lockfile --ignore-scripts
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: production-${{ github.sha }}
+          path: artifact
+      - name: Verify and unpack same-run build
+        run: |
+          cd artifact
+          sha256sum -c site.tar.gz.sha256
+          mkdir ../dist
+          tar -xzf site.tar.gz -C ../dist
+      - name: Deploy static site
+        id: deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          WRANGLER_SEND_METRICS: 'false'
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_SHA: ${{ github.sha }}
+          TARGET_REPO: ${{ github.repository }}
+        run: |
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+          test "$(gh api "repos/$TARGET_REPO/commits/main" --jq .sha)" = "$EXPECTED_SHA"
+          node deploy/node_modules/wrangler/bin/wrangler.js deploy --config wrangler.json

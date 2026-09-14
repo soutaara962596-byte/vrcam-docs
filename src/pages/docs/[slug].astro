@@ -1,0 +1,7 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import pages from '../../../.generated/pages.json';
+export function getStaticPaths() { return pages.map(page => ({ params: { slug: page.slug }, props: { page } })); }
+const { page } = Astro.props;
+---
+<Layout title={page.title}><div class="article-heading"><a href="/">← ドキュメント一覧</a><p class="eyebrow">{page.category}</p><h1>{page.title}</h1></div><article class="prose" set:html={page.html} /></Layout>

@@ -1,0 +1,9 @@
+---
+import Layout from '../layouts/Layout.astro';
+import pages from '../../.generated/pages.json';
+const labels = { 'faq': 'FAQ', 'adr': '設計判断', 'release-notes': '更新履歴', 'handoff': '開発状況' };
+---
+<Layout>
+  <section class="hero"><p class="eyebrow">VRCAM / KNOWLEDGE LIBRARY</p><h1>必要な知識を、<br />ひとつの場所に。</h1><p class="lead">使い方、設計の背景、これまでの変更。<br />VRCAMを理解するための資料を集めました。</p><p class="notice">このサイトは公開基盤のpilotです。掲載内容は動作確認用で、製品のリリース・受入状況を示すものではありません。</p></section>
+  <section aria-labelledby="library"><div class="section-title"><h2 id="library">ドキュメント</h2><span>{pages.length} ARTICLES</span></div><div class="grid">{pages.map(page => <a class="card" href={`/docs/${page.slug}/`}><span class="category">{labels[page.category]}</span><h3>{page.title}</h3><span class="read">読む <span aria-hidden="true">↗</span></span></a>)}</div></section>
+</Layout>
