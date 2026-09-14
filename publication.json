@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "documents": [
+    {
+      "source": "authoring/public/faq.md",
+      "slug": "faq",
+      "sha256": "4eee8dd67b427b4b9cdfe4ac0c3e14ce12333f20e141eaa662dd4edae2575b48"
+    },
+    {
+      "source": "authoring/public/publication-design.md",
+      "slug": "publication-design",
+      "sha256": "4024fbc0e402ef2d36d748a3d17a46cec4b49715ae061c0219ccf5f4a042dd9e"
+    },
+    {
+      "source": "authoring/public/pilot-notes.md",
+      "slug": "pilot-notes",
+      "sha256": "4f0b864f9699a1d90c86ba48f1244ed63b7376c46eeb49aa5d051b64856e6150"
+    },
+    {
+      "source": "authoring/public/development-summary.md",
+      "slug": "development-summary",
+      "sha256": "2579df3e67ade92206e255e7b5a77288a34e346332a2f75cadd9948049835085"
+    }
+  ]
+}

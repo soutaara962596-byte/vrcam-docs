@@ -1,0 +1,36 @@
+name: Docs rollback
+on:
+  workflow_dispatch:
+    inputs:
+      version_id:
+        description: Previously successful Cloudflare Worker version UUID (verify in deployment history)
+        required: true
+        type: string
+permissions: {}
+concurrency:
+  group: docs-production
+  cancel-in-progress: false
+jobs:
+  rollback:
+    if: github.ref == 'refs/heads/main' && vars.DOCS_DEPLOY_ENABLED == 'true'
+    environment: docs-rollback
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions: { contents: read }
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with: { persist-credentials: false }
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with: { node-version-file: .node-version }
+      - run: npm install --global --ignore-scripts pnpm@11.19.0
+      - run: pnpm --dir deploy install --frozen-lockfile --ignore-scripts
+      - name: Validate rollback target
+        env: { VERSION_ID: '${{ inputs.version_id }}' }
+        run: node -e "if(!/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(process.env.VERSION_ID)) process.exit(1)"
+      - name: Roll back to reviewed version
+        env:
+          VERSION_ID: ${{ inputs.version_id }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          WRANGLER_SEND_METRICS: 'false'
+        run: node deploy/node_modules/wrangler/bin/wrangler.js rollback "$VERSION_ID" --config wrangler.json --message "Human requested rollback via GitHub Actions" --yes

@@ -1,0 +1,9 @@
+{
+  "name": "vrcam-docs-deploy",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.19.0",
+  "dependencies": {
+    "wrangler": "4.131.2"
+  }
+}
